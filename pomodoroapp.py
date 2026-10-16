@@ -6,6 +6,38 @@ from tkinter import messagebox
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 
+class CanvasDotTracker(ttk.Canvas):
+    """A custom Canvas widget to display a cycle of filled and empty dots."""
+
+    def __init__(self, parent, dot_count=4, dot_size=16, spacing=12):
+        width = (dot_count * dot_size) + ((dot_count - 1) * spacing) + 4
+        height = dot_size + 4
+        bg_color = ttk.Style().colors.bg 
+
+        super().__init__(parent, width=width, height=height, bg=bg_color, highlightthickness=0)
+        self.dot_count = dot_count
+        self.dot_size = dot_size
+        self.spacing = spacing
+        self.current_count = 0
+        self.draw_dots()
+
+    def update_count(self, count):
+        """Updates the number of filled dots and redraws the canvas."""
+        self.current_count = count
+        self.draw_dots()
+
+    def draw_dots(self):
+        """Draws the filled and empty dots on the canvas."""
+        self.delete("all")  # Clear previous drawings
+        for i in range(self.dot_count):
+            x0 = 2 + i * (self.dot_size + self.spacing)
+            y0 = 2
+            x1 = x0 + self.dot_size
+            y1 = y0 + self.dot_size
+            fill_color = "#FF6B6B" if i < self.current_count else "#E0E0E0"
+            self.create_oval(x0, y0, x1, y1, fill=fill_color, outline="")
+  
+
 class TimerTab(ttk.Frame):
     """A reusable tab component with its own timer display, customization, and controls."""
 
@@ -138,7 +170,7 @@ class TimerTab(ttk.Frame):
 
        
 class PomodoroApp:
-    """Main application controller managing tabsm dot tracker, sizegrip, and the 4 pomodoro cycle."""
+    """Main application controller managing tabs, dot tracker, sizegrip, and the 4 pomodoro cycle."""
 
     def __init__(self, root):
         self.root = root
@@ -150,14 +182,15 @@ class PomodoroApp:
         self.pomodoro_count = 0  # Track completed pomodoros
         self.pomodoro_limit = 4  # Number of pomodoros before a long break
 
-        # Dot status tracker at the top
-        self.cycle_label = ttk.Label(
-            self.root, 
-            text=self._get_cycle_text(),
-            font=("Helvetica", 10),
-            bootstyle="danger"
-        )
-        self.cycle_label.pack(pady=(15, 5))
+        # Replace self.cycle_label with a header frame + CanvasDotTracker for better visual representation
+        header_frame = ttk.Frame(self.root)
+        header_frame.pack(pady=(15, 5))
+
+        self.dot_tracker = CanvasDotTracker(header_frame, dot_count=self.pomodoro_limit)
+        self.dot_tracker.pack()
+
+        # Initialize the dot tracker
+        self.dot_tracker.update_count(self.pomodoro_count)
 
         # Tab Container (Notebook)
         self.notebook = ttk.Notebook(self.root, bootstyle="dark")
@@ -195,7 +228,7 @@ class PomodoroApp:
     def handle_pomodoro_complete(self):
         """ Increments the pomodoro counter and routes to Short Break or 30m Long Break."""
         self.pomodoro_count += 1
-        self.cycle_label.config(text=self._get_cycle_text())
+        self.dot_tracker.update_count(self.pomodoro_count)
         self.root.bell()  # Audible alert for completion
 
         if self.pomodoro_count % self.pomodoro_limit == 0:
@@ -211,12 +244,12 @@ class PomodoroApp:
         # Reset counter display after a long break finishes a full set of 4
         if self.pomodoro_count >= self.pomodoro_limit:
             self.pomodoro_count = 0
-            self.cycle_label.config(text=self._get_cycle_text())
+            self.dot_tracker.update_count(self.pomodoro_count)
 
         messagebox.showinfo("Break Complete", "Time to get back to work!")
         self.notebook.select(self.pomo_tab)
 
 if __name__ == "__main__":
-    root = tk.Tk()
+    root = ttk.Window(themename="darkly")  # Use ttkbootstrap's themed window
     app = PomodoroApp(root)
     root.mainloop()

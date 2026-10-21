@@ -130,7 +130,7 @@ class TimerTab(ttk.Frame):
             self.minutes_var.set(str(self.default_minutes))
 
     def toggle_timer(self):
-        """Starts or pauses the timer based on its current state."""
+        """Starts or pauses the timer based on its current state.""" 
         if self.is_running:
             self.pause_timer()
         else:
